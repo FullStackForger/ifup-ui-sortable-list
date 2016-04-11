@@ -126,25 +126,25 @@ namespace ifup.ui
 
             int prevIndex = m_targetItemIndex;
             int itemIndex = -1;
-            SortableListItem item = null;
+            SortableListItem hoveredItem = null;
 
             foreach (SortableListItem listItem in m_targetList.GetItems()) {
                 itemIndex = listItem.transform.GetSiblingIndex();
                 // TODO [1]: calculate manualy including padding to prevent flickering
                 if (IsMouseOveRectTransform(listItem.transform as RectTransform)) {
                     m_targetItemIndex = itemIndex;
-                    item = listItem;
+                    hoveredItem = listItem;
                     break;
                 }
             }
 
             // Flickering fix: 
             // TODO [2]: can be removed as soon as above todo [1] is completed
-            if (item != null) {
-                m_mockItem.layoutElement.minWidth = item.layoutElement.minWidth;
-                m_mockItem.layoutElement.minHeight = item.layoutElement.minHeight;
-                m_mockItem.layoutElement.preferredWidth = item.layoutElement.preferredWidth;
-                m_mockItem.layoutElement.preferredHeight = item.layoutElement.preferredHeight;
+            if (hoveredItem != null) {
+                m_mockItem.layoutElement.minWidth = hoveredItem.layoutElement.minWidth;
+                m_mockItem.layoutElement.minHeight = hoveredItem.layoutElement.minHeight;
+                m_mockItem.layoutElement.preferredWidth = hoveredItem.layoutElement.preferredWidth;
+                m_mockItem.layoutElement.preferredHeight = hoveredItem.layoutElement.preferredHeight;
             } else {
                 m_mockItem.layoutElement.minWidth = m_draggedItem.layoutElement.minWidth;
                 m_mockItem.layoutElement.minHeight = m_draggedItem.layoutElement.minHeight;
