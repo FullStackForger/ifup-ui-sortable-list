@@ -85,7 +85,7 @@ namespace ifup.ui
         }
 
         private void OnListItemPressed(SortableList sortableList, SortableListItem sortableListItem)
-        {
+        {                   
             m_sourceList = sortableList;
             m_draggedItem = sortableListItem;
             m_sourceItemIndex = m_draggedItem.transform.GetSiblingIndex();
@@ -128,7 +128,8 @@ namespace ifup.ui
         private void UpdateActiveList()
         {
             if (m_dragActivated == false) return;
-
+            if (m_draggedItem == null) return;
+              
             bool activeList = false;           
             foreach (SortableList sortableList in m_sortableLists) {
                 if (IsMouseOverRectTransform(sortableList.transform as RectTransform)) {
@@ -161,10 +162,12 @@ namespace ifup.ui
             if (!activeList) {
                 m_targetItemIndex = m_sourceItemIndex;
                 m_targetList = m_sourceList;
+                m_targetList.DetachItem(m_mockItem, m_targetList.canvas.transform);
+                m_targetList = null;
+                return;
             }
 
-            if (prevIndex == m_targetItemIndex) return;
-
+            //if (prevIndex == m_targetItemIndex) return;
             m_targetList.AttachItem(m_mockItem, m_targetItemIndex);
             m_sourceList.UpdateContentSize();
 
@@ -172,6 +175,7 @@ namespace ifup.ui
 
         private void StartDragging()
         {
+            if (!m_sourceList) return;
             m_dragActivated = true;
             m_dragPrepping = false;
             ToggleScrollLock(true);
@@ -185,9 +189,13 @@ namespace ifup.ui
         }
 
         private void AttachDraggedItem()
-        {
+        {            
             int itemIndex = m_targetItemIndex;
             SortableList sortableList = m_targetList;
+
+            if (!sortableList) {
+                sortableList = m_sourceList;
+            }
 
             if (m_targetList == null) {
                 m_targetList = m_sourceList;
