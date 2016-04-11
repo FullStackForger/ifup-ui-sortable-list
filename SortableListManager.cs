@@ -111,7 +111,6 @@ namespace ifup.ui
 
         private void CacheListItemCorners()
         {
-            Debug.Log("caching");
             m_cornersList = new List<Rect>();                     
             foreach (SortableListItem listItem in m_targetList.GetItems()) {
                 Vector3[] itemCorners = new Vector3[4];
@@ -125,36 +124,32 @@ namespace ifup.ui
                 m_cornersList.Add(rect);
             }
         }
-
+       
         private void UpdateActiveList()
         {
             if (m_dragActivated == false) return;
-    
+
+            bool activeList = false;           
             foreach (SortableList sortableList in m_sortableLists) {
                 if (IsMouseOverRectTransform(sortableList.transform as RectTransform)) {
                     bool listChanged = m_targetList != sortableList;
+                    activeList = true;
                     m_targetList = sortableList;
                     if (listChanged) CacheListItemCorners();
                     break;
                 }
             }
-           
+
             if (m_targetList == null) return;
         
             m_mockItem.gameObject.SetActive(true);
             if (m_mockItem == null || m_mockItem.layoutElement == null) return;
 
             int prevIndex = m_targetItemIndex;
-            int itemIndex = 0;
-            foreach (Rect rect in m_cornersList) {
-                Vector3[] itemCorners = new Vector3[4];
-              
-                if (IsMouseOverRect(rect)) {
-                    Debug.Log("new index: " + itemIndex);                   
-                    break;
-                }
-
-                itemIndex++;          
+            int itemNewIndex = 0;
+            foreach (Rect rect in m_cornersList) {            
+                if (IsMouseOverRect(rect)) break;
+                itemNewIndex++;          
             }
 
             m_mockItem.layoutElement.minWidth = m_draggedItem.layoutElement.minWidth;
@@ -162,13 +157,14 @@ namespace ifup.ui
             m_mockItem.layoutElement.preferredWidth = m_draggedItem.layoutElement.preferredWidth;
             m_mockItem.layoutElement.preferredHeight = m_draggedItem.layoutElement.preferredHeight;
 
-           
-            m_targetItemIndex = itemIndex;
-           
+            m_targetItemIndex = itemNewIndex;
+            if (!activeList) {
+                m_targetItemIndex = m_sourceItemIndex;
+                m_targetList = m_sourceList;
+            }
 
             if (prevIndex == m_targetItemIndex) return;
 
-            Debug.Log("ataching mock at index: " + m_targetItemIndex);
             m_targetList.AttachItem(m_mockItem, m_targetItemIndex);
             m_sourceList.UpdateContentSize();
 
@@ -198,11 +194,9 @@ namespace ifup.ui
                 itemIndex = m_sourceItemIndex;
             }
 
-            Debug.Log("detaching mock");
             m_targetList.DetachItem(m_mockItem, m_targetList.canvas.transform);
             m_mockItem.gameObject.SetActive(false);
 
-            Debug.Log("ataching item");
             sortableList.AttachItem(m_draggedItem, itemIndex);
 
             m_draggedItem = null;
