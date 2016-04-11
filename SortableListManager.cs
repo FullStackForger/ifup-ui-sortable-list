@@ -20,6 +20,7 @@ namespace ifup.ui
         private int m_sourceItemIndex = -1;
 
         private SortableList m_targetList;
+        private List<Rect> m_cornersList = new List<Rect>();
         private int m_targetItemIndex = -1;
 
         private bool m_globalScrollLock = false;
@@ -108,57 +109,66 @@ namespace ifup.ui
             m_draggedItem.transform.position = Input.mousePosition;
         }
 
+        private void CacheListItemCorners()
+        {
+            Debug.Log("caching");
+            m_cornersList = new List<Rect>();                     
+            foreach (SortableListItem listItem in m_targetList.GetItems()) {
+                Vector3[] itemCorners = new Vector3[4];
+                (listItem.transform as RectTransform).GetWorldCorners(itemCorners);
+                Rect rect = new Rect() {
+                    x = itemCorners[0].x,
+                    y = itemCorners[0].y,
+                    width = itemCorners[2].x - itemCorners[0].x,
+                    height = itemCorners[2].y - itemCorners[0].y,
+                };
+                m_cornersList.Add(rect);
+            }
+        }
+
         private void UpdateActiveList()
         {
-            Vector3 mousePos = Input.mousePosition;
+            if (m_dragActivated == false) return;
+    
             foreach (SortableList sortableList in m_sortableLists) {
-                if (IsMouseOveRectTransform(sortableList.transform as RectTransform)) {
+                if (IsMouseOverRectTransform(sortableList.transform as RectTransform)) {
+                    bool listChanged = m_targetList != sortableList;
                     m_targetList = sortableList;
+                    if (listChanged) CacheListItemCorners();
                     break;
                 }
             }
-
+           
             if (m_targetList == null) return;
-            if (m_dragActivated == false) return;
-
+        
             m_mockItem.gameObject.SetActive(true);
             if (m_mockItem == null || m_mockItem.layoutElement == null) return;
 
             int prevIndex = m_targetItemIndex;
-            int itemIndex = -1;
-            SortableListItem hoveredItem = null;
-
-            foreach (SortableListItem listItem in m_targetList.GetItems()) {
-                itemIndex = listItem.transform.GetSiblingIndex();
-                // TODO [1]: calculate manualy including padding to prevent flickering
-                if (IsMouseOveRectTransform(listItem.transform as RectTransform)) {
-                    m_targetItemIndex = itemIndex;
-                    hoveredItem = listItem;
+            int itemIndex = 0;
+            foreach (Rect rect in m_cornersList) {
+                Vector3[] itemCorners = new Vector3[4];
+              
+                if (IsMouseOverRect(rect)) {
+                    Debug.Log("new index: " + itemIndex);                   
                     break;
                 }
+
+                itemIndex++;          
             }
 
-            // Flickering fix: 
-            // TODO [2]: can be removed as soon as above todo [1] is completed
-            if (hoveredItem != null) {
-                m_mockItem.layoutElement.minWidth = hoveredItem.layoutElement.minWidth;
-                m_mockItem.layoutElement.minHeight = hoveredItem.layoutElement.minHeight;
-                m_mockItem.layoutElement.preferredWidth = hoveredItem.layoutElement.preferredWidth;
-                m_mockItem.layoutElement.preferredHeight = hoveredItem.layoutElement.preferredHeight;
-            } else {
-                m_mockItem.layoutElement.minWidth = m_draggedItem.layoutElement.minWidth;
-                m_mockItem.layoutElement.minHeight = m_draggedItem.layoutElement.minHeight;
-                m_mockItem.layoutElement.preferredWidth = m_draggedItem.layoutElement.preferredWidth;
-                m_mockItem.layoutElement.preferredHeight = m_draggedItem.layoutElement.preferredHeight;
-            }
+            m_mockItem.layoutElement.minWidth = m_draggedItem.layoutElement.minWidth;
+            m_mockItem.layoutElement.minHeight = m_draggedItem.layoutElement.minHeight;
+            m_mockItem.layoutElement.preferredWidth = m_draggedItem.layoutElement.preferredWidth;
+            m_mockItem.layoutElement.preferredHeight = m_draggedItem.layoutElement.preferredHeight;
 
-            if (m_targetItemIndex != itemIndex) {
-                m_targetItemIndex = itemIndex + 1;
-            }
+           
+            m_targetItemIndex = itemIndex;
+           
 
             if (prevIndex == m_targetItemIndex) return;
 
-
+            Debug.Log("ataching mock at index: " + m_targetItemIndex);
             m_targetList.AttachItem(m_mockItem, m_targetItemIndex);
             m_sourceList.UpdateContentSize();
 
@@ -188,10 +198,12 @@ namespace ifup.ui
                 itemIndex = m_sourceItemIndex;
             }
 
-            sortableList.AttachItem(m_draggedItem, itemIndex);
-
+            Debug.Log("detaching mock");
             m_targetList.DetachItem(m_mockItem, m_targetList.canvas.transform);
             m_mockItem.gameObject.SetActive(false);
+
+            Debug.Log("ataching item");
+            sortableList.AttachItem(m_draggedItem, itemIndex);
 
             m_draggedItem = null;
             m_targetList = null;
@@ -200,14 +212,20 @@ namespace ifup.ui
             m_sourceItemIndex = -1;
         }
 
-        private bool IsMouseOveRectTransform(RectTransform rt)
+        private bool IsMouseOverRectTransform(RectTransform rt)
         {
             Vector2 mousePosition = Input.mousePosition;
             Vector3[] worldCorners = new Vector3[4];
             rt.GetWorldCorners(worldCorners);
 
-            if (mousePosition.x >= worldCorners[0].x && mousePosition.x < worldCorners[2].x
-               && mousePosition.y >= worldCorners[0].y && mousePosition.y < worldCorners[2].y) {
+            return IsMouseOverRect(new Rect(worldCorners[0], worldCorners[2] - worldCorners[0]));
+        }
+
+        private bool IsMouseOverRect(Rect rect)
+        {
+            Vector2 mousePosition = Input.mousePosition;
+            if (mousePosition.x >= rect.x && mousePosition.x < rect.x + rect.width
+               && mousePosition.y >= rect.y && mousePosition.y < rect.y + rect.height) {
                 return true;
             }
             return false;
@@ -222,3 +240,4 @@ namespace ifup.ui
         }
     }
 }
+ 
